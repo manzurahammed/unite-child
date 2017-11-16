@@ -1,5 +1,7 @@
 <?php 
-
+/*
+Create Films Custom post type
+*/
 add_action( 'init', 'register_custom_post_type' );
 function register_custom_post_type() {
 	if ( post_type_exists( 'znews' ) ) {
@@ -37,7 +39,9 @@ function register_custom_post_type() {
 	register_post_type( 'films', $args );
 }
 
-
+/*
+Register taxonomies from films
+*/
 function be_register_taxonomies() {
 	$taxonomies = array(
 		array(
@@ -95,19 +99,24 @@ function be_register_taxonomies() {
 add_action( 'init', 'be_register_taxonomies');
 
 add_action( 'admin_enqueue_scripts', 'loadd_script');
+/*
+Load css/js for admin
+*/
 function loadd_script(){
 	wp_enqueue_style('unite-admin-style',get_stylesheet_directory_uri().'/css/unite-admin-style.css');
 	wp_enqueue_style( 'jquery.datetimepicker', get_stylesheet_directory_uri().'/css/jquery.datetimepicker.min.css');
 	wp_enqueue_script( 'jquery.datetimepicker',get_stylesheet_directory_uri().'/js/jquery.datetimepicker.full.min.js',array('jquery'),false,false);
 	wp_enqueue_script( 'unite-admin-script',get_stylesheet_directory_uri().'/js/unite-admin-script.js',array('jquery'),false,false);
 }
-
+/*
+Show Last five FILM
+*/
 function films_list( $atts ) {
 	$atts = shortcode_atts( array(
 		'title' => 'Film List',
 		'no_films' => '5',
 	), $atts, 'show_films' );
-	$args = apply_filters('films_query_arg',array('post_type' => 'films','order'   => 'DESC','posts_per_page'=>$atts['no_films']));
+	$args = apply_filters('films_query_arg',array('post_type' => 'films','order'   => 'asc','posts_per_page'=>$atts['no_films']));
 	$query = new WP_Query($args);
 	$output = '';
 	if ($query->have_posts() ) {
@@ -127,14 +136,18 @@ function films_list( $atts ) {
 }
 add_shortcode( 'show_films', 'films_list' );
 add_filter('get_search_form','modified_search_form');
-
+/*
+Add data under Search Box
+*/
 function modified_search_form($form){
 	$short_code = apply_filters('show_films','[show_films]');
 	return $form.do_shortcode($short_code);
 }
 
 add_filter('edit_post_link','add_films_data',10,3);
-
+/*
+Add data after edit link
+*/
 function add_films_data($link,$id,$text){
 	if(get_post_type($id)=='films'){
 		return $link.get_films_info($id);
@@ -142,7 +155,9 @@ function add_films_data($link,$id,$text){
 		return $link;
 	}
 }
-
+/*
+return film info by id
+*/
 function get_films_info($id){
 	if(is_single()){
 		return '';
