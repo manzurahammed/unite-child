@@ -25,7 +25,7 @@ function register_custom_post_type() {
 		'label'               => esc_html__( 'Films', 'unite' ),
 		'description'         => esc_html__( 'Create and manage all Films', 'unite' ),
 		'labels'              => $labels,
-		'supports'            => array( 'title', 'author', 'thumbnail', 'editor', 'excerpt', 'custom-fields','comments'),
+		'supports'            => array( 'title', 'author', 'thumbnail', 'editor'),
 		'hierarchical'        => false,
 		'public'              => true,
 		'rewrite'             =>  array( 'slug' => 'films', 'with_front' => false ),
@@ -92,4 +92,67 @@ function be_register_taxonomies() {
 		));
 	}
 }
-add_action( 'init', 'be_register_taxonomies' );
+add_action( 'init', 'be_register_taxonomies');
+
+add_action( 'admin_enqueue_scripts', 'loadd_script');
+function loadd_script(){
+	wp_enqueue_style('unite-admin-style',get_stylesheet_directory_uri().'/css/unite-admin-style.css');
+	wp_enqueue_style( 'jquery.datetimepicker', get_stylesheet_directory_uri().'/css/jquery.datetimepicker.min.css');
+	wp_enqueue_script( 'jquery.datetimepicker',get_stylesheet_directory_uri().'/js/jquery.datetimepicker.full.min.js',array('jquery'),false,false);
+	wp_enqueue_script( 'unite-admin-script',get_stylesheet_directory_uri().'/js/unite-admin-script.js',array('jquery'),false,false);
+}
+
+function films_list( $atts ) {
+	$atts = shortcode_atts( array(
+		'title' => 'Film List',
+		'no_films' => '5',
+	), $atts, 'show_films' );
+	$args = apply_filters('films_query_arg',array('post_type' => 'films','order'   => 'DESC','posts_per_page'=>$atts['no_films']));
+	$query = new WP_Query($args);
+	$output = '';
+	if ($query->have_posts() ) {
+		$output .= '<div class="films-list">';
+		$output .= '<h3 class="heading">'.$atts['title'].'</h3>';
+			while($query->have_posts()){
+				$query->the_post();
+				$output .= '<div class="films-item">';
+					$output .= '<a href="'.get_the_permalink().'">'.get_the_title().'</a>';
+				$output .= '</div>';
+			}
+		$output .= '</div>';
+	}else{
+		$output .= '<h4>'.esc_html__('No Data Found','unite').'<h4>';
+	}
+	return $output;
+}
+add_shortcode( 'show_films', 'films_list' );
+add_filter('get_search_form','modified_search_form');
+
+function modified_search_form($form){
+	$short_code = apply_filters('show_films','[show_films]');
+	return $form.do_shortcode($short_code);
+}
+
+add_filter('edit_post_link','add_films_data',10,3);
+
+function add_films_data($link,$id,$text){
+	if(get_post_type($id)=='films'){
+		return $link.get_films_info($id);
+	}else{
+		return $link;
+	}
+}
+
+function get_films_info($id){
+	if(is_single()){
+		return '';
+	}
+	$output = '<h4>'.esc_html__('Film Info','unite').'</h4>';
+	$release_date = get_post_meta($id,'release_date',true);
+	$ticket_price = get_post_meta($id,'ticket_price',true);
+	$output .= '<span>'.esc_html__('Release Date: ','unite').(($release_date!='')?$release_date:'--').'<span>/';
+	$output .= '<span>'.esc_html__('Ticket Price: ','unite').(($ticket_price!='')?$ticket_price:'--').'<span><br>';
+	$output .= get_the_term_list($id, 'genre', 'Genre: ', ', ' ).'/';
+	$output .= get_the_term_list($id, 'country', 'Country: ', ', ' );
+	return $output;
+}
